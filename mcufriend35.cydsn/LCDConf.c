@@ -41,7 +41,7 @@ File        : LCDConf.c
 Purpose     : Display controller configuration (single layer)
 ---------------------------END-OF-HEADER------------------------------
 */
-
+#include <stdio.h>
 #include "GUI.h"
 #include "GUIDRV_FlexColor.h"
 
@@ -57,8 +57,8 @@ Purpose     : Display controller configuration (single layer)
 //   The display size should be adapted in order to match the size of
 //   the target display.
 //
-#define XSIZE_PHYS 240
-#define YSIZE_PHYS 320
+#define XSIZE_PHYS 320
+#define YSIZE_PHYS 480
 
 //
 // Color conversion
@@ -111,7 +111,7 @@ static const uint8_t ILI9341_regValues_2_4[]  = {        // BOE 2.4"
 0xCB,0x5,0x39,0x2C,0x0,0x34,0x2,          // Not defined
 0xF7,0x1,0x20,                            // Not defined
 0xEA,0x2,0x0,0x0,                         // Not defined  
-    #endif
+#endif
 0xB0,0x1,0x0,                             // RGB Interface Control
 0xB1,0x2,0x0,0x1B,                        // Frame Rate Control
 0xB4,0x1,0x0,                             // Display Inversion Control
@@ -139,10 +139,8 @@ static const uint8_t ILI9341_regValues_2_4[]  = {        // BOE 2.4"
 0x20,0x0,                                 // Display Inversion OFF
 };
 
-
-static void _InitController_9341(void)
+static void lcd_start_reset()
 {
-    /* Start the parallel interface */
     GraphicLCDIntf_1_Start();
 
     /* Reset - High, Low (reset), High */
@@ -152,68 +150,260 @@ static void _InitController_9341(void)
     GUI_Delay(100);
     Cy_GPIO_Set(LCD_RESET_N_0_PORT, LCD_RESET_N_0_NUM);
     GUI_Delay(100);
-    
-    for(unsigned int i=0;i<sizeof(ILI9341_regValues_2_4);i++)
-    {
-        GraphicLCDIntf_1_Write8_A0(ILI9341_regValues_2_4[i]);
-        i=i+1;
-        unsigned int count;
-        count = ILI9341_regValues_2_4[i];
-        for(unsigned int j=0;j<count;j++)
-        {
-            i=i+1;
-            GraphicLCDIntf_1_Write8_A1(ILI9341_regValues_2_4[i]);
-        }   
-    }
+    GraphicLCDIntf_1_Write8(0,0x01);
+    GUI_Delay(100);
 }
 
-static void sendStartSequence(uint8_t *buff,uint32_t len)
+static void sendStartSequence(const uint8_t *buff,uint32_t len)
 {
-        for(unsigned int i=0;i<len;i++)
+    for(unsigned int i=0;i<len;i++)
     {
-        GraphicLCDIntf_1_Write8_A0(buff[i]);
-        i=i+1;
-        unsigned int count;
-        count = buff[i];
-        for(unsigned int j=0;j<count;j++)
+        if(buff[i] == 0xDD) // 
         {
+            //printf("Delay %d\r\n",buff[i+1]);
+            CyDelay(buff[i+1]);
             i=i+1;
-            GraphicLCDIntf_1_Write8_A1(buff[i]);
-        }   
+        }
+        else
+        {
+            GraphicLCDIntf_1_Write8_A0(buff[i]);
+            //printf("C = %02X ",buff[i]);
+            i=i+1;
+            unsigned int count;
+            count = buff[i];
+            //printf("%02X ",count);
+            for(unsigned int j=0;j<count;j++)
+            {
+                i=i+1;
+                GraphicLCDIntf_1_Write8_A1(buff[i]);
+            //    printf(" %02X",buff[i]);
+            }
+            //printf("\r\n");
+        }
     }
 }
 
-
-static const uint8_t mcu35_init_sequence[]  = {
-0x1,0x0, 
-0x28,0x0, 
-0x3A,0x1,0x55, 
-0x3A,0x1,0x55, 
-0x11,0x0, 
-0x29,0x0, 
-0xB6,0x3,0x0,0x22,0x3B, 
-0x36,0x1,0x8, 
-0x2A,0x4,0x0,0x0,0x1,0x3F, 
-0x2B,0x4,0x0,0x0,0x1,0xDF, 
-0x33,0x6,0x0,0x0,0x1,0xE0,0x0,0x0, 
-0x37,0x2,0x0,0x0, 
-0x13,0x0, 
-0x20,0x0, 
+static const uint8_t mcu35_init_sequence_kbv[]  = {
+    0x1,0x0,                            // Software Reset
+    0x28,0x0,                           // Display Off
+    0x3A,0x1,0x55,                      // Pixel Format Set 565
+    0x3A,0x1,0x55,                      // Pixel Format Set 565
+    0x11,0x0,                           // Sleep Out
+    0x29,0x0,                           // Display On
+    0xB6,0x3,0x0,0x22,0x3B,             // Display Function Control
+    0x36,0x1,0x8,                       // Memory Access Control
+    0x2A,0x4,0x0,0x0,0x1,0x3F,          // Column Set Address 320
+    0x2B,0x4,0x0,0x0,0x1,0xDF,          // Page Set Addres 480
+    0x33,0x6,0x0,0x0,0x1,0xE0,0x0,0x0,  // Vertical Scrolling Definition
+    0x37,0x2,0x0,0x0,                   // Vertical Scrolling Start Address
+    0x13,0x0,                           // Normal Display On
+    0x20,0x0,                           // Display Inversion Off
 };
 
-static void _InitController_mcu35()
-{
-    GraphicLCDIntf_1_Start();
+static const uint8_t mcu35_init_9090[]  = {
+    0x1,0x0, 
+    0x28,0x0, 
+    0x3A,0x1,0x55, 
+    0x11,0x0, 
+    0x29,0x0, 
+    0x36,0x1,0x48, 
+    0x2A,0x4,0x0,0x0,0x1,0x3F, 
+    0x2B,0x4,0x0,0x0,0x1,0xDF, 
+    0x33,0x6,0x0,0x0,0x1,0xE0,0x0,0x0, 
+    0x37,0x2,0x0,0x0, 
+    0x13,0x0, 
+    0x21,0x0, 
+};
 
-    /* Reset - High, Low (reset), High */
-    Cy_GPIO_Set(LCD_RESET_N_0_PORT, LCD_RESET_N_0_NUM);
-    GUI_Delay(20);
-    Cy_GPIO_Clr(LCD_RESET_N_0_PORT, LCD_RESET_N_0_NUM);
-    GUI_Delay(100);
-    Cy_GPIO_Set(LCD_RESET_N_0_PORT, LCD_RESET_N_0_NUM);
-    GUI_Delay(100);
- 
-    sendStartSequence(mcu35_init_sequence,sizeof(mcu35_init_sequence));
+
+
+static const uint8_t mcu35_init_sequence_web[]  = {
+//    0xFF,0x00,          // ?
+//    0xFF,0x00,          // ?
+//    0xDD,5,             // Delay 5
+//    0xFF,0x00,          //
+//    0xFF,0x00,          //
+//    0xFF,0x00,          //
+//    0xFF,0x00,          // ?
+//    0xDD,10,            // delay 10
+    //  
+//    0xB0,0x01,0x00,                                     // IF Mode control
+//    0xB3,0x04,0x02,0x00,0x00,0x10,                      // Frame Rate Control - only 2 paramters
+//    0xB4,0x01,0x11,                                     // Display inversion control 
+//    0xC0,0x08,0x13,0x3B,0x00,0x00,0x00,0x01,0x00,0x43,  // Power Control 1
+//    0xC1,0x04,0x08,0x15,0x08,0x08,                      // Power Control 2
+//    0xC4,0x04,0x15,0x03,0x03,0x01,                      // ?
+//    0xC6,0x01,0x02,                                     // ?
+    // ??
+//    0xC8,0x15,0x0C,0x05,0x0A,0x6B,0x04,0x06,0x15,0x10,0x00,0x31,0x10,0x15,0x06,0x64,0x0D,0x0A,0x05,0x0C,0x31,0x00,
+//    0x35,0x01,0x00,                     // Tearing Effect 
+//    0x0C,0x01,0x66,                     // Read pixel format?
+    0x3A,0x01,0x55,                     // Pixel Format Set
+    
+//    0x44,0x02,0x00,0x01,                // Set Tear Scanline
+//    0xD0,0x04,0x07,0x07,0x14,0xA2,      // NVM Write
+//    0xD1,0x03,0x03,0x5A,0x10,           // NVM Protection Key
+//    0xD2,0x03,0x03,0x04,0x04,           // NVM Status Read
+
+    0x11,0x00,                          // Sleep Out
+    0xDD,150,                           // Delay 150ms
+    0x2A,0x04,0x00,0x00,0x01,0x3F,      // Column Set Address 320
+    0x2B,0x04,0x00,0x00,0x01,0xDF,      // Page Set Address   480
+    0xDD,100,                           // Delay 100ms
+    0x29,0x00,                          // Display On
+    0xDD,30,                            // delay 30ms
+    0x2C,0x00                           // Memory Write
+};
+
+
+static void _InitController35Web()
+{
+    GraphicLCDIntf_1_Write8_A0(0xFF);
+    GraphicLCDIntf_1_Write8_A0(0xFF);
+    CyDelay(5);
+    GraphicLCDIntf_1_Write8_A0(0xFF);
+    GraphicLCDIntf_1_Write8_A0(0xFF);
+    GraphicLCDIntf_1_Write8_A0(0xFF);
+    GraphicLCDIntf_1_Write8_A0(0xFF);
+    CyDelay(10);
+    //0xB0,0x01,0x00,
+    GraphicLCDIntf_1_Write8_A0(0xB0); //0
+    GraphicLCDIntf_1_Write8_A1(0x00);
+    
+    //0xB3,0x04,0x02,0x00,0x00,0x10,
+    GraphicLCDIntf_1_Write8_A0(0xB3); //1
+    GraphicLCDIntf_1_Write8_A1(0x02);
+    GraphicLCDIntf_1_Write8_A1(0x00);
+    GraphicLCDIntf_1_Write8_A1(0x00);
+    GraphicLCDIntf_1_Write8_A1(0x10);
+    
+    //0xB4,0x01,0x11,
+    GraphicLCDIntf_1_Write8_A0(0xB4); // 2
+    GraphicLCDIntf_1_Write8_A1(0x11);//0X10
+
+    // 0xC0,0x08,0x13,0x3B,0x00,0x00,0x00,0x01,0x00,0x43,
+    GraphicLCDIntf_1_Write8_A0(0xC0);
+    GraphicLCDIntf_1_Write8_A1(0x13);
+    GraphicLCDIntf_1_Write8_A1(0x3B);//
+    GraphicLCDIntf_1_Write8_A1(0x00);
+    GraphicLCDIntf_1_Write8_A1(0x00);
+    GraphicLCDIntf_1_Write8_A1(0x00);
+    GraphicLCDIntf_1_Write8_A1(0x01);
+    GraphicLCDIntf_1_Write8_A1(0x00);//NW
+    GraphicLCDIntf_1_Write8_A1(0x43);
+
+    // 0xC1,0x04,0x08,0x15,0x08,0x08,
+    GraphicLCDIntf_1_Write8_A0(0xC1);
+    GraphicLCDIntf_1_Write8_A1(0x08);
+    GraphicLCDIntf_1_Write8_A1(0x15);//CLOCK
+    GraphicLCDIntf_1_Write8_A1(0x08);
+    GraphicLCDIntf_1_Write8_A1(0x08);
+
+    // 0xC4,0x04,0x15,0x03,0x03,0x01
+    GraphicLCDIntf_1_Write8_A0(0xC4);
+    GraphicLCDIntf_1_Write8_A1(0x15);
+    GraphicLCDIntf_1_Write8_A1(0x03);
+    GraphicLCDIntf_1_Write8_A1(0x03);
+    GraphicLCDIntf_1_Write8_A1(0x01);
+
+    // 0xC6,0x01,0x02
+    GraphicLCDIntf_1_Write8_A0(0xC6);
+    GraphicLCDIntf_1_Write8_A1(0x02);
+
+    // 0xC8,0x15,0x0C,0x05,0x0A,0x6B,0x04,0x06,0x15,0x10,0x00,0x31,0x10,0x15,0x06,0x64,0x0D,0x0A,0x05,0x0C,0x31,0x00
+    GraphicLCDIntf_1_Write8_A0(0xC8);
+    GraphicLCDIntf_1_Write8_A1(0x0c);
+    GraphicLCDIntf_1_Write8_A1(0x05);
+    GraphicLCDIntf_1_Write8_A1(0x0A);//0X12
+    GraphicLCDIntf_1_Write8_A1(0x6B);//0x7D
+    GraphicLCDIntf_1_Write8_A1(0x04);
+    GraphicLCDIntf_1_Write8_A1(0x06);//0x08
+    GraphicLCDIntf_1_Write8_A1(0x15);//0x0A
+    GraphicLCDIntf_1_Write8_A1(0x10);
+    GraphicLCDIntf_1_Write8_A1(0x00);
+    GraphicLCDIntf_1_Write8_A1(0x31);//0x23
+    GraphicLCDIntf_1_Write8_A1(0x10);
+    GraphicLCDIntf_1_Write8_A1(0x15);//0x0A
+    GraphicLCDIntf_1_Write8_A1(0x06);//0x08
+    GraphicLCDIntf_1_Write8_A1(0x64);//0x74
+    GraphicLCDIntf_1_Write8_A1(0x0D);//0x0B
+    GraphicLCDIntf_1_Write8_A1(0x0A);//0x12
+    GraphicLCDIntf_1_Write8_A1(0x05);//0x08
+    GraphicLCDIntf_1_Write8_A1(0x0C);//0x06
+    GraphicLCDIntf_1_Write8_A1(0x31);//0x23
+    GraphicLCDIntf_1_Write8_A1(0x00);
+
+    // 0x35,0x01,0x00
+    GraphicLCDIntf_1_Write8_A0(0x35);
+    GraphicLCDIntf_1_Write8_A1(0x00);
+    //GraphicLCDIntf_1_Write8_A0(0x36);
+    //GraphicLCDIntf_1_Write8_A1(0x00);
+
+    // 0x0C,0x01,x066
+    GraphicLCDIntf_1_Write8_A0(0x0C);
+    GraphicLCDIntf_1_Write8_A1(0x66);
+
+    //0x3A,0x01,0x55
+    GraphicLCDIntf_1_Write8_A0(0x3A);
+    GraphicLCDIntf_1_Write8_A1(0x55); // ARH changed to 565
+    //GraphicLCDIntf_1_Write8_A1(0x66);
+
+    // 0x44,0x02,0x00,0x01
+    GraphicLCDIntf_1_Write8_A0(0x44);
+    GraphicLCDIntf_1_Write8_A1(0x00);
+    GraphicLCDIntf_1_Write8_A1(0x01);
+
+    // 0xD0,0x04,0x07,0x07,0x14,0xA2,
+    GraphicLCDIntf_1_Write8_A0(0xD0);
+    GraphicLCDIntf_1_Write8_A1(0x07);
+    GraphicLCDIntf_1_Write8_A1(0x07);//VCI1
+    GraphicLCDIntf_1_Write8_A1(0x14);//VRH 0x1D
+    GraphicLCDIntf_1_Write8_A1(0xA2);//BT 0x06
+
+
+    // 0xD1,0x03,0x03,0x5A,0x10 
+    GraphicLCDIntf_1_Write8_A0(0xD1);
+    GraphicLCDIntf_1_Write8_A1(0x03);
+    GraphicLCDIntf_1_Write8_A1(0x5A);//VCM  0x5A
+    GraphicLCDIntf_1_Write8_A1(0x10);//VDV
+
+    // 0xD2,0x03,0x03,0x04,0x04,
+    GraphicLCDIntf_1_Write8_A0(0xD2);
+    GraphicLCDIntf_1_Write8_A1(0x03);
+    GraphicLCDIntf_1_Write8_A1(0x04);//0x24
+    GraphicLCDIntf_1_Write8_A1(0x04);
+
+    // 0x11,0x00,
+    GraphicLCDIntf_1_Write8_A0(0x11);
+    CyDelay(150);
+
+
+    // 0x2A,0x04,0x00,0x00,0x01,0x3F
+    GraphicLCDIntf_1_Write8_A0(0x2A);
+    GraphicLCDIntf_1_Write8_A1(0x00);
+    GraphicLCDIntf_1_Write8_A1(0x00);
+    GraphicLCDIntf_1_Write8_A1(0x01);
+    GraphicLCDIntf_1_Write8_A1(0x3F);//320
+
+
+    // 0x2B,0x04,0x00,0x00,0x01,0xDF
+    GraphicLCDIntf_1_Write8_A0(0x2B);
+    GraphicLCDIntf_1_Write8_A1(0x00);
+    GraphicLCDIntf_1_Write8_A1(0x00);
+    GraphicLCDIntf_1_Write8_A1(0x01);
+    GraphicLCDIntf_1_Write8_A1(0xDF);//480
+    //GraphicLCDIntf_1_Write8_A0(0xB4);
+    //GraphicLCDIntf_1_Write8_A1(0x00);
+    
+    CyDelay(100);
+
+    // 0x29,0x00
+    GraphicLCDIntf_1_Write8_A0(0x29);
+    CyDelay(30);
+
+
+    // 0x2C,0x00
+    GraphicLCDIntf_1_Write8_A0(0x2C);
 }
 
 #if 0
@@ -349,8 +539,9 @@ void LCD_X_Config(void) {
     //
     // Orientation
     //
-    //Config.Orientation   = GUI_MIRROR_Y | GUI_SWAP_XY;
-    Config.Orientation   = GUI_SWAP_XY;
+    Config.Orientation   =   GUI_SWAP_XY;
+    // Sheild 1
+    //Config.Orientation   = GUI_SWAP_XY | GUI_MIRROR_X | GUI_MIRROR_Y;
     GUIDRV_FlexColor_Config(pDevice, &Config);
     //
     // Set controller and operation mode
@@ -399,7 +590,32 @@ int LCD_X_DisplayDriver(unsigned LayerIndex, unsigned Cmd, void * pData) {
             // to be adapted by the customer...
             //
             // ...
-            _InitController_9341();
+            
+            lcd_start_reset(); 
+            
+            //sendStartSequence(ILI9341_regValues_2_4,sizeof(ILI9341_regValues_2_4));
+            
+            // Screen 1: Works!!!
+            // Screen 2: upside down
+            // Screen 3: Upside down and red
+            
+            //sendStartSequence(mcu35_init_sequence_kbv,sizeof(mcu35_init_sequence_kbv));
+            
+            // Screen 1:
+            // Screen 2:
+            // Screen 3:
+            //sendStartSequence(mcu35_init_9090,sizeof(mcu35_init_9090));
+            
+            // Screen 1: Works
+            // Screen 2: Colors, inverted text
+            // Screen 3: Colors hosed...
+            sendStartSequence(mcu35_init_sequence_web,sizeof(mcu35_init_sequence_web));
+            
+            // Screen 1: Inverted with correct color
+            // Screen 2: jack and colormap screwed
+            // Screen 3: Colormap fucked
+            //_InitController35Web();
+            
             return 0;
         }
         default:

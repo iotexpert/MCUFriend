@@ -3,7 +3,7 @@
 <!--This file is machine generated and read. It is not intended to be edited by hand.-->
 <!--Due to this, there is no schema for this file.-->
 <CyGuid_2867d519-54d2-4c01-9830-c51cb08bc3dd type_name="CyDesigner.Common.ProjMgmt.Model.CyPrjMgmtWorkspaceSerialize" version="5" xml_contents_version="3" name="MCUFriend" persistent="MCUFriend.cywrk" platform="NOT_USED">
-<current_project name=".\mcufriend.cydsn\mcufriend.cyprj" />
+<current_project name=".\mcufriend35.cydsn\mcufriend35.cyprj" />
 <wrkspc_folders />
 <files>
 <CyGuid_8b8ab257-35d3-4473-b57b-36315200b38b type_name="CyDesigner.Common.ProjMgmt.Model.CyPrjMgmtFileSerialize" version="3" xml_contents_version="1">
@@ -18,6 +18,7 @@
 <v>.\mcufriend.cydsn\mcufriend.cyprj</v>
 <v>.\CE223726_EmWin_TFT_Display_ST778902.cydsn\CE223726_EmWin_TFT_Display_ST778902.cyprj</v>
 <v>.\identify.cydsn\identify.cyprj</v>
+<v>.\mcufriend35.cydsn\mcufriend35.cyprj</v>
 </projects>
 <workspace_id v="46814fb2-d359-4ebc-94e0-4df7040ce062" />
 <WriteAppVersionLastSavedWith v="4.2.0.641" />
