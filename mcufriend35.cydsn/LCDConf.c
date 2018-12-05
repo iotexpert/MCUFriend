@@ -218,6 +218,45 @@ static const uint8_t mcu35_init_9090[]  = {
 
 
 static const uint8_t mcu35_init_sequence_web[]  = {
+    0xFF,0x00,          // ?
+    0xFF,0x00,          // ?
+    0xDD,5,             // Delay 5
+    0xFF,0x00,          //
+    0xFF,0x00,          //
+    0xFF,0x00,          //
+    0xFF,0x00,          // ?
+    0xDD,10,            // delay 10
+    //  
+    0xB0,0x01,0x00,                                     // IF Mode control
+    0xB3,0x04,0x02,0x00,0x00,0x10,                      // Frame Rate Control - only 2 paramters
+    0xB4,0x01,0x11,                                     // Display inversion control 
+    0xC0,0x08,0x13,0x3B,0x00,0x00,0x00,0x01,0x00,0x43,  // Power Control 1
+    0xC1,0x04,0x08,0x15,0x08,0x08,                      // Power Control 2
+    0xC4,0x04,0x15,0x03,0x03,0x01,                      // ?
+    0xC6,0x01,0x02,                                     // ?
+    // ??
+    0xC8,0x15,0x0C,0x05,0x0A,0x6B,0x04,0x06,0x15,0x10,0x00,0x31,0x10,0x15,0x06,0x64,0x0D,0x0A,0x05,0x0C,0x31,0x00,
+    0x35,0x01,0x00,                     // Tearing Effect 
+    0x0C,0x01,0x66,                     // Read pixel format?
+    0x3A,0x01,0x55,                     // Pixel Format Set
+    
+    0x44,0x02,0x00,0x01,                // Set Tear Scanline
+    0xD0,0x04,0x07,0x07,0x14,0xA2,      // NVM Write
+    0xD1,0x03,0x03,0x5A,0x10,           // NVM Protection Key
+    0xD2,0x03,0x03,0x04,0x04,           // NVM Status Read
+
+    0x11,0x00,                          // Sleep Out
+    0xDD,150,                           // Delay 150ms
+    0x2A,0x04,0x00,0x00,0x01,0x3F,      // Column Set Address 320
+    0x2B,0x04,0x00,0x00,0x01,0xDF,      // Page Set Address   480
+    0xDD,100,                           // Delay 100ms
+    0x29,0x00,                          // Display On
+    0xDD,30,                            // delay 30ms
+    0x2C,0x00                           // Memory Write
+};
+
+
+static const uint8_t mcu35_init_sequence_web_edited[]  = {
 //    0xFF,0x00,          // ?
 //    0xFF,0x00,          // ?
 //    0xDD,5,             // Delay 5
@@ -236,14 +275,14 @@ static const uint8_t mcu35_init_sequence_web[]  = {
 //    0xC6,0x01,0x02,                                     // ?
     // ??
 //    0xC8,0x15,0x0C,0x05,0x0A,0x6B,0x04,0x06,0x15,0x10,0x00,0x31,0x10,0x15,0x06,0x64,0x0D,0x0A,0x05,0x0C,0x31,0x00,
-//    0x35,0x01,0x00,                     // Tearing Effect 
-//    0x0C,0x01,0x66,                     // Read pixel format?
+    0x35,0x01,0x00,                     // Tearing Effect 
+ //   0x0C,0x01,0x66,                     // Read pixel format?
     0x3A,0x01,0x55,                     // Pixel Format Set
     
-//    0x44,0x02,0x00,0x01,                // Set Tear Scanline
+    0x44,0x02,0x00,0x01,                // Set Tear Scanline
 //    0xD0,0x04,0x07,0x07,0x14,0xA2,      // NVM Write
 //    0xD1,0x03,0x03,0x5A,0x10,           // NVM Protection Key
-//    0xD2,0x03,0x03,0x04,0x04,           // NVM Status Read
+//   0xD2,0x03,0x03,0x04,0x04,           // NVM Status Read
 
     0x11,0x00,                          // Sleep Out
     0xDD,150,                           // Delay 150ms
@@ -252,9 +291,8 @@ static const uint8_t mcu35_init_sequence_web[]  = {
     0xDD,100,                           // Delay 100ms
     0x29,0x00,                          // Display On
     0xDD,30,                            // delay 30ms
-    0x2C,0x00                           // Memory Write
+//    0x2C,0x00                           // Memory Write
 };
-
 
 static void _InitController35Web()
 {
@@ -609,12 +647,17 @@ int LCD_X_DisplayDriver(unsigned LayerIndex, unsigned Cmd, void * pData) {
             // Screen 1: Works
             // Screen 2: Colors, inverted text
             // Screen 3: Colors hosed...
-            sendStartSequence(mcu35_init_sequence_web,sizeof(mcu35_init_sequence_web));
+            //sendStartSequence(mcu35_init_sequence_web,sizeof(mcu35_init_sequence_web));
             
             // Screen 1: Inverted with correct color
             // Screen 2: jack and colormap screwed
             // Screen 3: Colormap fucked
             //_InitController35Web();
+      
+            // Screen 1: 
+            // Screen 2: 
+            // Screen 3: 
+            sendStartSequence(mcu35_init_sequence_web_edited,sizeof(mcu35_init_sequence_web_edited));
             
             return 0;
         }

@@ -18,6 +18,7 @@
       <Data key="66d81837-ef41-49e6-84ff-6fe6828757c0/65f3af6c-759b-4ccb-8c66-5c95ba1f5f4f" value="UART_tx" />
       <Data key="66d81837-ef41-49e6-84ff-6fe6828757c0/b7e8018e-1ef7-49c0-b5a5-61641a03e31c" value="UART_rx" />
       <Data key="122d9389-0083-4701-afa6-d5a418aa7bf2" value="SW2" />
+      <Data key="554fff9e-0cbb-41c2-aa03-78f6f55cb629" value="RED" />
       <Data key="0654abd4-8013-44c2-931a-887ce094a48a" value="nrd" />
       <Data key="a61270bc-07ec-447d-ac9e-34cfe85c30e9" value="d" />
       <Data key="dd1390f8-4b56-4356-874e-b614ddb00065" value="LCD_CS" />
@@ -712,6 +713,11 @@
     <Group key="122d9389-0083-4701-afa6-d5a418aa7bf2">
       <Group key="0">
         <Data key="Port Format" value="0,4" />
+      </Group>
+    </Group>
+    <Group key="554fff9e-0cbb-41c2-aa03-78f6f55cb629">
+      <Group key="0">
+        <Data key="Port Format" value="0,3" />
       </Group>
     </Group>
     <Group key="0654abd4-8013-44c2-931a-887ce094a48a">

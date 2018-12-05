@@ -836,8 +836,14 @@ int main(void)
 
     /* Display the startup screen for 3 seconds */
     ShowStartupScreen();
+    Cy_GPIO_Write(RED_PORT,RED_NUM,1);
     while(1);
-    CyDelay(5000);
+    while(1)
+    {
+         Cy_GPIO_Inv(RED_PORT,RED_NUM);
+         CyDelay(500);
+   
+    }
     
 
     /* Show Instructions Screen */
